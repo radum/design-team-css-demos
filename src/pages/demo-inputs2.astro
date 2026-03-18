@@ -1,0 +1,1493 @@
+---
+import RootLayout from '../layouts/RootLayout.astro';
+import DemoLayout from '../layouts/DemoLayout.astro';
+---
+
+<script type="module"></script>
+
+<style is:global>
+	/**
+    * Custom Select Demo - Application Styles
+    *
+    * This stylesheet handles page layout and global styles.
+    * Component-specific styles are in select/select.css.
+    */
+
+	/* =============================================================================
+   EXTERNAL DEPENDENCIES
+   ============================================================================= */
+
+	/* Open Props provides CSS custom properties for animations */
+	@import 'https://unpkg.com/open-props/easings.min.css';
+	@import 'https://unpkg.com/open-props/durations.min.css';
+
+	/* Select component styles */
+	/**
+    * CustomSelect Component Styles
+    *
+    * A custom select dropdown with aligned opening animation.
+    * The selected option aligns with the button when the picker opens.
+    *
+    * Key CSS features used:
+    * - appearance: base-select (enables custom select styling)
+    * - CSS Anchor Positioning (picker positioned relative to button)
+    * - CSS Custom Properties (--_select-anchor-offset from JavaScript)
+    * - Container Queries with scroll-state() (sticky legend detection)
+    * - @starting-style (entry animations for popover)
+    *
+    * All layout uses logical properties for RTL/writing-mode support.
+    */
+
+	/* =============================================================================
+   DESIGN TOKENS
+   ============================================================================= */
+
+	select {
+		/* Spacing */
+		--_select-space: 8px;
+		--_select-space-xs: 4px;
+		--_select-space-xxs: 2px;
+
+		/* Shared dimensions */
+		--_select-item-h: 36px;
+		--_select-picker-r: 10px;
+		--_select-option-r: 6px;
+		--_select-icon-size: 16px;
+		--_select-check-size: 14px;
+		--_select-max-w: 220px;
+		--_select-max-h: min(380px, 80dvh);
+
+		/* Scale values for animations */
+		--_select-scale-open: 1.04;
+		--_select-scale-press: 0.98;
+		--_select-scale-start: 0.9;
+
+		/* Animation timing (imported from Open Props) */
+		--_select-dur-in: var(--duration-gentle-1);
+		--_select-dur-out: var(--duration-quick-2);
+
+		/* Colors - adaptive to light/dark mode via system colors */
+		--_select-bg: light-dark(white, oklch(20% none none));
+		--_select-border: color-mix(in srgb, CanvasText 15%, transparent);
+		--_select-hover-bg: color-mix(in srgb, CanvasText 4%, transparent);
+		--_select-shadow: rgb(0 0 0 / 0.1);
+		--_select-scrollbar: color-mix(in srgb, CanvasText 30%, transparent);
+		--_select-icon: color-mix(in srgb, CanvasText 55%, transparent);
+
+		/* Icons by color */
+		--_select-chevron-black: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="black" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5"/></svg>');
+		--_select-chevron-white: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="white" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5"/></svg>');
+		--_select-check-black: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="%23000" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5"/></svg>');
+		--_select-check-white: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="white" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5"/></svg>');
+		--_select-check-canvas: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="Canvas" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5"/></svg>');
+
+		@media (prefers-color-scheme: dark) {
+			--_select-shadow: rgb(0 0 0 / 0.5);
+			--_select-hover-bg: color-mix(in srgb, CanvasText 10%, transparent);
+		}
+	}
+
+	/* =============================================================================
+   SELECT BUTTON (CLOSED STATE)
+   ============================================================================= */
+
+	select {
+		/* Enable custom select styling - this is the magic property */
+		/* Picker also needs base-select appearance */
+		@media (hover) and (pointer: fine) {
+			&,
+			&::picker(select) {
+				appearance: base-select;
+			}
+		}
+
+		max-inline-size: var(--_select-max-w);
+		font: inherit;
+		place-items: center;
+		border-radius: var(--_select-option-r);
+		background: var(--_select-bg);
+		border: 1px solid var(--_select-border);
+		box-shadow: 0 0 0 0 color-mix(in srgb, CanvasText 8%, transparent);
+		padding-block: 0;
+		padding-inline: var(--_select-space-xs);
+
+		will-change: scale; /* fixes text shift */
+		transition:
+			box-shadow 0.2s ease,
+			scale calc(var(--_select-dur-in) * 2) var(--ease-spring-3);
+
+		/* Squircle corners for modern browsers */
+		@supports (corner-shape: squircle) {
+			corner-shape: superellipse(1.25);
+			border-radius: 20px;
+		}
+
+		/* iOS fix so it doesnt zoom */
+		@supports (-webkit-touch-callout: none) {
+			font-size: 16px;
+		}
+
+		/* Open state - subtle scale up for depth effect */
+		&:open {
+			scale: var(--_select-scale-open);
+		}
+
+		/* Hover - subtle shadow halo effect for light mode, but dark mode has a background color */
+		&:hover {
+			background-color: Canvas;
+
+			@media (prefers-color-scheme: light) {
+				box-shadow: 0 0 0 var(--_select-space-xs) color-mix(in srgb, CanvasText 5%, transparent);
+			}
+
+			@media (prefers-color-scheme: dark) {
+				background-color: color-mix(in srgb, CanvasText 10%, transparent);
+			}
+		}
+
+		/* Focus states */
+		&:focus {
+			outline: 2px solid color-mix(in srgb, Highlight 50%, transparent);
+			outline-offset: 2px;
+		}
+
+		&:focus-visible {
+			outline: 2px solid Highlight;
+			outline-offset: 3px;
+		}
+	}
+
+	/* =============================================================================
+   BUTTON TRIGGER
+   ============================================================================= */
+
+	select > button {
+		display: flex;
+		align-items: center;
+		gap: var(--_select-space);
+		inline-size: 100%;
+		block-size: var(--_select-item-h);
+		padding-inline: var(--_select-space);
+		background: transparent;
+		color: CanvasText;
+		border: none;
+		border-radius: var(--_select-option-r);
+
+		-webkit-tap-highlight-color: transparent;
+		transition: transform 0.1s ease;
+
+		&:active {
+			transform: scale(var(--_select-scale-press));
+		}
+	}
+
+	/* =============================================================================
+   PICKER ICON (CHEVRON)
+   ============================================================================= */
+
+	/**
+ * The picker icon rotates 180° when open.
+ * Uses spring easing for a playful, physical feel.
+ */
+	select::picker-icon {
+		content: var(--_select-chevron-black);
+		inline-size: var(--_select-icon-size);
+		block-size: var(--_select-icon-size);
+		aspect-ratio: 1;
+		margin-inline-end: var(--_select-space);
+		opacity: 0.75;
+		transition:
+			transform calc(var(--_select-dur-in) * 3) var(--ease-spring-3),
+			opacity 0.15s;
+
+		@media (prefers-color-scheme: dark) {
+			content: var(--_select-chevron-white);
+		}
+	}
+
+	select:hover::picker-icon {
+		opacity: 0.8;
+	}
+
+	select:open::picker-icon {
+		transform: rotate(180deg);
+		opacity: 1;
+	}
+
+	/* =============================================================================
+   PICKER DROPDOWN
+   ============================================================================= */
+
+	/**
+ * The picker uses CSS Anchor Positioning to align with the button.
+ *
+ * Key alignment mechanism:
+ * - inset-block-start: calc(anchor(start) - var(--_select-anchor-offset))
+ *   Moves picker up so selected option aligns with button
+ * - transform-origin: 50% var(--_select-anchor-offset)
+ *   Scales from the selected option's position for smooth animation
+ *
+ * The --_select-anchor-offset is calculated by JavaScript and set as an
+ * inline style on the select element.
+ */
+	select::picker(select) {
+		overflow: clip;
+
+		/* Anchor positioning - align selected option with button */
+		inset-block-start: calc(anchor(start) - var(--_select-anchor-offset));
+		inset-inline-start: calc(anchor(start) - var(--_select-space));
+
+		/* Sizing - at least as wide as button, with some base width */
+		min-inline-size: calc(anchor-size(inline) + var(--_select-icon-size));
+		max-block-size: var(--_select-max-h);
+		margin: 0;
+		padding-block: var(--_select-space);
+		padding-inline-end: var(--_select-space-xs);
+
+		/* Fallback when aligned position overflows viewport */
+		position-try: flip-block, flip-inline;
+
+		/* Scale animation origin - aligned with selected option offset */
+		transform-origin: 50% var(--_select-anchor-offset);
+
+		/* Appearance */
+		background-clip: padding-box;
+		border: 1px solid var(--_select-border);
+		border-radius: var(--_select-picker-r);
+		background-color: var(--_select-bg);
+		box-shadow:
+			0 10px 15px -3px var(--_select-shadow),
+			0 4px 6px -4px var(--_select-shadow);
+
+		@supports (corner-shape: squircle) {
+			corner-shape: superellipse(1.25);
+			border-radius: 25px;
+		}
+
+		/* Open state animation */
+		opacity: 1;
+		will-change: scale;
+		transition:
+			display var(--_select-dur-in) allow-discrete,
+			overlay var(--_select-dur-in) allow-discrete,
+			opacity var(--_select-dur-in) ease,
+			scale calc(var(--_select-dur-in) * 2) var(--ease-spring-3);
+	}
+
+	select[dir='rtl']::picker(select) {
+		inset-inline-end: calc(anchor(start) - 40px);
+	}
+
+	/* Closed state - fade and scale down */
+	select::picker(select):not(:popover-open) {
+		opacity: 0;
+		scale: var(--_select-scale-press);
+		transition-duration: var(--_select-dur-out);
+	}
+
+	/**
+ * Entry animation using @starting-style.
+ * This defines the initial state before the popover becomes visible.
+ * Without this, the picker would appear instantly without animation.
+ */
+	@starting-style {
+		select::picker(select):popover-open {
+			opacity: 0;
+			scale: var(--_select-scale-start);
+		}
+	}
+
+	/* =============================================================================
+   OPTIONS
+   ============================================================================= */
+	@keyframes select-option-enter {
+		from {
+			opacity: 0;
+		}
+	}
+
+	select option {
+		display: flex;
+		align-items: center;
+		gap: var(--_select-space);
+		margin-inline: 0;
+		block-size: var(--_select-item-h);
+		padding-inline: var(--_select-space);
+		padding-inline-end: 12px;
+		border: 1px solid transparent;
+		border-radius: var(--_select-option-r);
+		position: relative;
+		transition: background 0.15s;
+
+		@media (prefers-reduced-motion: no-preference) {
+			@supports (animation-timeline: view()) {
+				animation: select-option-enter both;
+				animation-timeline: view();
+				animation-range: entry 50% entry 100%;
+			}
+		}
+
+		/* Gap between options (except last) */
+		&:not(:last-of-type) {
+			margin-block-end: var(--_select-space-xxs);
+		}
+
+		@supports (corner-shape: squircle) {
+			corner-shape: superellipse(1.25);
+			border-radius: 20px;
+		}
+
+		&:hover:where(:not([disabled])) {
+			background: var(--_select-hover-bg);
+		}
+
+		/* Selected/checked state */
+		&:checked {
+			background: Highlight;
+			color: HighlightText;
+
+			@media (forced-colors: active) {
+				background: Canvas;
+				border-color: Highlight;
+				color: Highlight;
+			}
+
+			& .icon {
+				stroke: currentColor;
+			}
+		}
+	}
+
+	/* =============================================================================
+   CHECKMARK
+   ============================================================================= */
+
+	/**
+ * The checkmark appears on the selected option.
+ */
+	select option::checkmark {
+		order: 2;
+		margin-inline-start: auto;
+		content: var(--_select-check-black);
+		inline-size: var(--_select-check-size);
+		block-size: var(--_select-check-size);
+		aspect-ratio: 1;
+
+		@media (prefers-color-scheme: dark) {
+			content: var(--_select-check-black);
+		}
+
+		@media (forced-colors: active) {
+			content: var(--_select-check-canvas);
+
+			@media (prefers-color-scheme: dark) {
+				content: var(--_select-check-white);
+			}
+		}
+	}
+
+	/* =============================================================================
+   ICONS
+   ============================================================================= */
+
+	select .icon {
+		inline-size: var(--_select-icon-size);
+		block-size: var(--_select-icon-size);
+		fill: none;
+		stroke: var(--_select-icon);
+		stroke-width: 1.5;
+		stroke-linecap: round;
+		stroke-linejoin: round;
+		flex-shrink: 0;
+	}
+
+	/* =============================================================================
+   OPTGROUP GROUPS
+   ============================================================================= */
+
+	select optgroup {
+		display: grid;
+		border: none;
+		margin: 0;
+		padding: 0;
+
+		/* Border separator between optgroups */
+		&:not(:first-of-type) {
+			border-block-start: 1px solid var(--_select-border);
+		}
+
+		/* Gap after optgroups (except last) */
+		&:not(:last-of-type) {
+			padding-block-end: var(--_select-space);
+		}
+	}
+
+	/* =============================================================================
+   LEGENDS (GROUP HEADERS)
+   ============================================================================= */
+
+	/**
+ * Legends are sticky headers that stay visible when scrolling.
+ * Uses container queries with scroll-state(stuck) to detect when
+ * the legend is stuck to the top, changing its text color for emphasis.
+ */
+	select legend {
+		float: inline-start;
+		inline-size: 100%;
+		position: sticky;
+		inset-block-start: 0;
+		z-index: 1;
+
+		/* Text trimming for precise vertical alignment */
+		text-box: trim-both cap alphabetic;
+
+		padding-block: 12px 6px;
+		padding-inline: 10px;
+		background: var(--_select-bg);
+		font-size: 11px;
+		text-transform: uppercase;
+		letter-spacing: 0.15em;
+
+		/* Enable scroll-state container queries */
+		container-type: scroll-state;
+
+		& span {
+			display: inline-flex;
+			align-items: center;
+			gap: var(--_select-space-xs);
+			color: color-mix(in srgb, CanvasText 50%, transparent);
+			transition: color 0.3s ease;
+
+			/**
+     * When the legend becomes "stuck" (sticky positioned at top),
+     * make the text more prominent to indicate scroll context.
+     */
+			@container scroll-state(stuck) {
+				color: CanvasText;
+
+				@media (forced-colors: active) {
+					color: Highlight;
+				}
+			}
+		}
+	}
+
+	/* =============================================================================
+   SELECTED CONTENT (IN BUTTON)
+   ============================================================================= */
+
+	select selectedcontent {
+		display: flex;
+		align-items: center;
+		gap: var(--_select-space);
+		flex: 1;
+		min-inline-size: 0;
+
+		/* Text overflow handling */
+		& span {
+			overflow: hidden;
+			text-overflow: ellipsis;
+			white-space: nowrap;
+		}
+
+		/* Hide checkmark in button display */
+		&::checkmark {
+			display: none;
+		}
+
+		& .icon {
+			stroke: currentColor;
+			opacity: 0.6;
+		}
+	}
+
+	/* Padding adjustment when no icon present */
+	select > button > selectedcontent:not(:has(svg)) {
+		padding-inline-start: var(--_select-space-xs);
+	}
+
+	/* =============================================================================
+   LIST CONTAINER
+   ============================================================================= */
+
+	/**
+ * The scrollable container for options.
+ * Uses scroll-state container queries for legend sticky detection.
+ */
+	select .list {
+		container-type: scroll-state;
+
+		padding-inline: var(--_select-space) var(--_select-space-xs);
+		overflow: hidden auto;
+		max-block-size: calc(var(--_select-max-h) - var(--_select-space) * 2);
+		min-inline-size: max-content;
+
+		/* Subtle scrollbar styling */
+		scrollbar-width: thin;
+		scrollbar-color: var(--_select-scrollbar) transparent;
+		transition: scrollbar-color 0.5s ease;
+		overscroll-behavior-block: contain;
+
+		@media (prefers-reduced-motion: no-preference) {
+			scroll-behavior: smooth;
+		}
+
+		/* Fade scrollbar when not hovering */
+		&:not(:hover) {
+			scrollbar-color: color-mix(in srgb, var(--_select-scrollbar), transparent 50%) transparent;
+		}
+	}
+
+	/* =============================================================================
+   SCROLLABLE STATE ADAPTATIONS
+   ============================================================================= */
+
+	/**
+ * When content exceeds max-height, JavaScript adds .scrollable class.
+ * These rules adjust spacing to accommodate the scrollbar and prevent
+ * awkward gaps at the bottom of the picker.
+ */
+
+	/* Picker needs more inline padding for scrollbar */
+	select.scrollable::picker(select) {
+		padding-inline-end: var(--_select-space);
+	}
+
+	/* List needs matching inline padding */
+	select.scrollable .list {
+		padding-inline-end: var(--_select-space);
+	}
+
+	/* Last optgroup gets minimal padding to avoid excess bottom space */
+	select.scrollable optgroup:last-of-type {
+		padding-block-end: var(--_select-space-xxs);
+	}
+
+	/* =============================================================================
+   GLOBAL SETTINGS
+   ============================================================================= */
+
+	:root {
+		/* Enable automatic light/dark mode switching */
+		color-scheme: light dark;
+	}
+
+	/* =============================================================================
+   PAGE LAYOUT
+   ============================================================================= */
+
+	.demo {
+		/* Reset */
+		margin: 0;
+		padding-block: max(100px, 25vh);
+		padding-inline: max(50px, 15vw);
+		box-sizing: border-box;
+
+		/* Centered column layout for demo */
+		display: grid;
+		grid-template-columns: repeat(auto-fit, 25ch);
+		place-content: center;
+		place-items: start;
+		gap: 24px;
+
+		/* Full viewport height */
+		min-block-size: 100dvb;
+
+		/* Typography */
+		font-family:
+			system-ui,
+			-apple-system,
+			sans-serif;
+		font-size: 14px;
+
+		/* System colors adapt to color scheme */
+		background: light-dark(oklch(98% none none), oklch(10% none none));
+		color: CanvasText;
+	}
+
+	/**
+ * Example-specific styles
+ *
+ * These styles support the additional select examples.
+ * Review and move into select.css as needed.
+ */
+
+	/* =============================================================================
+   COLORSPACE SELECT - Button Label
+   ============================================================================= */
+
+	select.colorspace-select {
+		@supports (appearance: base-select) {
+			min-block-size: 3lh;
+		}
+	}
+
+	select.colorspace-select > button {
+		display: grid;
+		gap: 0;
+	}
+
+	select.colorspace-select > button .label {
+		font-size: 8px;
+		opacity: 0.6;
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+		padding-inline-start: 4px;
+		margin-block-end: -1em;
+	}
+
+	/* =============================================================================
+   PERSON SELECT - Avatars
+   ============================================================================= */
+
+	select.person-select {
+		button {
+			padding-inline-start: 0;
+		}
+
+		.avatar {
+			inline-size: 24px;
+			block-size: 24px;
+			border-radius: 50%;
+			object-fit: cover;
+			flex-shrink: 0;
+		}
+	}
+
+	/* =============================================================================
+   TOGGLE SELECT - Indicators
+   ============================================================================= */
+
+	select.toggle .indicator {
+		inline-size: 8px;
+		block-size: 8px;
+		border-radius: 50%;
+		flex-shrink: 0;
+	}
+
+	select.toggle .indicator.on {
+		background: #51cf66;
+	}
+
+	select.toggle .indicator.off {
+		background: #ff6b6b;
+	}
+
+	select.toggle .indicator.disabled {
+		background: #e0e0e0;
+	}
+
+	/* =============================================================================
+   STATUS SELECT - Descriptions
+   ============================================================================= */
+
+	select.status-select {
+		@supports (appearance: base-select) {
+			min-block-size: 3lh;
+		}
+	}
+
+	select.status-select .custom-option {
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+	}
+
+	select.status-select .custom-option .description {
+		font-size: 11px;
+		opacity: 0.6;
+	}
+
+	/* Adjust option height for multi-line content */
+	select.status-select option:has(.custom-option) {
+		block-size: auto;
+		min-block-size: var(--item-height);
+		padding-block: 8px;
+	}
+</style>
+
+<RootLayout>
+	<DemoLayout>
+		<section id="center">
+			<select>
+				<button>
+					<selectedcontent></selectedcontent>
+				</button>
+				<div class="list">
+					<option value="urgent">
+						<svg class="icon" viewBox="0 0 24 24">
+							<path d="M12 9v4m0 4h.01M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"></path>
+						</svg>
+						<span>Urgent</span>
+					</option>
+					<option value="high">
+						<svg class="icon" viewBox="0 0 24 24">
+							<path d="m4.5 15.75 7.5-7.5 7.5 7.5"></path>
+						</svg>
+						<span>High</span>
+					</option>
+					<option value="medium" selected>
+						<svg class="icon" viewBox="0 0 24 24"><path d="M5 12h14"></path></svg>
+						<span>Medium</span>
+					</option>
+					<option value="low">
+						<svg class="icon" viewBox="0 0 24 24">
+							<path d="m4.5 8.25 7.5 7.5 7.5-7.5"></path>
+						</svg>
+						<span>Low</span>
+					</option>
+				</div>
+			</select>
+
+			<select>
+				<button>
+					<selectedcontent></selectedcontent>
+				</button>
+				<div class="list">
+					<optgroup label="Priority">
+						<legend><span>Priority</span></legend>
+						<option value="urgent">
+							<svg class="icon" viewBox="0 0 24 24">
+								<path d="M12 9v4m0 4h.01M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"></path>
+							</svg>
+							<span>Urgent</span>
+						</option>
+						<option value="high">
+							<svg class="icon" viewBox="0 0 24 24">
+								<path d="m4.5 15.75 7.5-7.5 7.5 7.5"></path>
+							</svg>
+							<span>High</span>
+						</option>
+						<option value="medium">
+							<svg class="icon" viewBox="0 0 24 24"><path d="M5 12h14"></path></svg>
+							<span>Medium</span>
+						</option>
+						<option value="low" selected>
+							<svg class="icon" viewBox="0 0 24 24">
+								<path d="m4.5 8.25 7.5 7.5 7.5-7.5"></path>
+							</svg>
+							<span>Low</span>
+						</option>
+					</optgroup>
+				</div>
+			</select>
+
+			<select>
+				<button>
+					<selectedcontent></selectedcontent>
+				</button>
+				<div class="list">
+					<optgroup label="Priority">
+						<legend><span>Priority</span></legend>
+						<option value="urgent">
+							<svg class="icon" viewBox="0 0 24 24">
+								<path d="M12 9v4m0 4h.01M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"></path>
+							</svg>
+							<span>Urgent</span>
+						</option>
+						<option value="high">
+							<svg class="icon" viewBox="0 0 24 24">
+								<path d="m4.5 15.75 7.5-7.5 7.5 7.5"></path>
+							</svg>
+							<span>High</span>
+						</option>
+						<option value="medium">
+							<svg class="icon" viewBox="0 0 24 24"><path d="M5 12h14"></path></svg>
+							<span>Medium</span>
+						</option>
+						<option value="low">
+							<svg class="icon" viewBox="0 0 24 24">
+								<path d="m4.5 8.25 7.5 7.5 7.5-7.5"></path>
+							</svg>
+							<span>Low</span>
+						</option>
+					</optgroup>
+					<optgroup label="Status">
+						<legend><span>Status</span></legend>
+						<option value="backlog">
+							<svg class="icon" viewBox="0 0 24 24">
+								<path d="M9 12h6m-6 4h6m2 5H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.586a1 1 0 0 1 .707.293l5.414 5.414a1 1 0 0 1 .293.707V19a2 2 0 0 1-2 2Z"></path>
+							</svg>
+							<span>Backlog</span>
+						</option>
+						<option value="in-progress">
+							<svg class="icon" viewBox="0 0 24 24">
+								<path d="M12 6v6l4 2m6-2a10 10 0 1 1-20 0 10 10 0 0 1 20 0Z"></path>
+							</svg>
+							<span>In Progress</span>
+						</option>
+						<option value="review">
+							<svg class="icon" viewBox="0 0 24 24">
+								<path d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178ZM15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"></path>
+							</svg>
+							<span>In Review</span>
+						</option>
+						<option value="done">
+							<svg class="icon" viewBox="0 0 24 24">
+								<path d="m4.5 12.75 6 6 9-13.5"></path>
+							</svg>
+							<span>Done</span>
+						</option>
+					</optgroup>
+					<optgroup label="Actions">
+						<legend><span>Actions</span></legend>
+						<option value="duplicate">
+							<svg class="icon" viewBox="0 0 24 24">
+								<path
+									d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 0 1-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 0 1 1.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 0 0-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 0 1-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 0 0-3.375-3.375h-1.5a1.125 1.125 0 0 1-1.125-1.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H9.75"
+								></path>
+							</svg>
+							<span>Duplicate</span>
+						</option>
+						<option value="move">
+							<svg class="icon" viewBox="0 0 24 24">
+								<path
+									d="M2.25 12.75V12A2.25 2.25 0 0 1 4.5 9.75h15A2.25 2.25 0 0 1 21.75 12v.75m-8.69-6.44-2.12-2.12a1.5 1.5 0 0 0-1.061-.44H4.5A2.25 2.25 0 0 0 2.25 6v12a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9a2.25 2.25 0 0 0-2.25-2.25h-5.379a1.5 1.5 0 0 1-1.06-.44Z"
+								></path>
+							</svg>
+							<span>Move to folder</span>
+						</option>
+						<option value="export">
+							<svg class="icon" viewBox="0 0 24 24">
+								<path d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5"></path>
+							</svg>
+							<span>Export</span>
+						</option>
+						<option value="delete">
+							<svg class="icon" viewBox="0 0 24 24">
+								<path
+									d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0"
+								></path>
+							</svg>
+							<span>Delete</span>
+						</option>
+					</optgroup>
+					<optgroup label="Assign">
+						<legend><span>Assign</span></legend>
+						<option value="unassigned">
+							<svg class="icon" viewBox="0 0 24 24">
+								<path d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z"></path>
+							</svg>
+							<span>Unassigned</span>
+						</option>
+						<option value="assign-me">
+							<svg class="icon" viewBox="0 0 24 24">
+								<path d="M17.982 18.725A7.488 7.488 0 0 0 12 15.75a7.488 7.488 0 0 0-5.982 2.975m11.963 0a9 9 0 1 0-11.963 0m11.963 0A8.966 8.966 0 0 1 12 21a8.966 8.966 0 0 1-5.982-2.275M15 9.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"></path>
+							</svg>
+							<span>Assign to me</span>
+						</option>
+						<option value="assign-team">
+							<svg class="icon" viewBox="0 0 24 24">
+								<path
+									d="M18 18.72a9.094 9.094 0 0 0 3.741-.479 3 3 0 0 0-4.682-2.72m.94 3.198.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0 1 12 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 0 1 6 18.719m12 0a5.971 5.971 0 0 0-.941-3.197m0 0A5.995 5.995 0 0 0 12 12.75a5.995 5.995 0 0 0-5.058 2.772m0 0a3 3 0 0 0-4.681 2.72 8.986 8.986 0 0 0 3.74.477m.94-3.197a5.971 5.971 0 0 0-.94 3.197M15 6.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm6 3a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Zm-13.5 0a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Z"
+								></path>
+							</svg>
+							<span>Assign to team</span>
+						</option>
+					</optgroup>
+					<optgroup label="Other">
+						<legend><span>Other</span></legend>
+						<option value="archived">
+							<svg class="icon" viewBox="0 0 24 24">
+								<path
+									d="m20.25 7.5-.625 10.632a2.25 2.25 0 0 1-2.247 2.118H6.622a2.25 2.25 0 0 1-2.247-2.118L3.75 7.5m8.25 3v6.75m0 0-3-3m3 3 3-3M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125Z"
+								></path>
+							</svg>
+							<span>Archived</span>
+						</option>
+						<option value="blocked">
+							<svg class="icon" viewBox="0 0 24 24">
+								<path d="M18.364 18.364A9 9 0 0 0 5.636 5.636m12.728 12.728A9 9 0 0 1 5.636 5.636m12.728 12.728L5.636 5.636"></path>
+							</svg>
+							<span>Blocked</span>
+						</option>
+						<option value="cancelled">
+							<svg class="icon" viewBox="0 0 24 24">
+								<path d="M6 18 18 6M6 6l12 12"></path>
+							</svg>
+							<span>Cancelled</span>
+						</option>
+					</optgroup>
+					<optgroup label="Assign">
+						<legend><span>Assign</span></legend>
+						<option value="unassigned">
+							<svg class="icon" viewBox="0 0 24 24">
+								<path d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z"></path>
+							</svg>
+							<span>Unassigned</span>
+						</option>
+						<option value="assign-me">
+							<svg class="icon" viewBox="0 0 24 24">
+								<path d="M17.982 18.725A7.488 7.488 0 0 0 12 15.75a7.488 7.488 0 0 0-5.982 2.975m11.963 0a9 9 0 1 0-11.963 0m11.963 0A8.966 8.966 0 0 1 12 21a8.966 8.966 0 0 1-5.982-2.275M15 9.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"></path>
+							</svg>
+							<span>Assign to me</span>
+						</option>
+						<option value="assign-team">
+							<svg class="icon" viewBox="0 0 24 24">
+								<path
+									d="M18 18.72a9.094 9.094 0 0 0 3.741-.479 3 3 0 0 0-4.682-2.72m.94 3.198.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0 1 12 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 0 1 6 18.719m12 0a5.971 5.971 0 0 0-.941-3.197m0 0A5.995 5.995 0 0 0 12 12.75a5.995 5.995 0 0 0-5.058 2.772m0 0a3 3 0 0 0-4.681 2.72 8.986 8.986 0 0 0 3.74.477m.94-3.197a5.971 5.971 0 0 0-.94 3.197M15 6.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm6 3a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Zm-13.5 0a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Z"
+								></path>
+							</svg>
+							<span>Assign to team</span>
+						</option>
+					</optgroup>
+					<optgroup label="Other">
+						<legend><span>Other</span></legend>
+						<option value="archived">
+							<svg class="icon" viewBox="0 0 24 24">
+								<path
+									d="m20.25 7.5-.625 10.632a2.25 2.25 0 0 1-2.247 2.118H6.622a2.25 2.25 0 0 1-2.247-2.118L3.75 7.5m8.25 3v6.75m0 0-3-3m3 3 3-3M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125Z"
+								></path>
+							</svg>
+							<span>Archived</span>
+						</option>
+						<option value="blocked">
+							<svg class="icon" viewBox="0 0 24 24">
+								<path d="M18.364 18.364A9 9 0 0 0 5.636 5.636m12.728 12.728A9 9 0 0 1 5.636 5.636m12.728 12.728L5.636 5.636"></path>
+							</svg>
+							<span>Blocked</span>
+						</option>
+						<option value="cancelled">
+							<svg class="icon" viewBox="0 0 24 24">
+								<path d="M6 18 18 6M6 6l12 12"></path>
+							</svg>
+							<span>Cancelled</span>
+						</option>
+					</optgroup>
+				</div>
+			</select>
+
+			<select>
+				<button>
+					<selectedcontent></selectedcontent>
+				</button>
+				<div class="list">
+					<option value="thin"><span>Thin</span></option>
+					<option value="light"><span>Light</span></option>
+					<option value="regular" selected><span>Regular</span></option>
+					<option value="medium"><span>Medium</span></option>
+					<option value="semibold"><span>Semibold</span></option>
+					<option value="bold"><span>Bold</span></option>
+					<option value="black"><span>Black</span></option>
+					<option value="megablack" disabled><span>Mega Black</span></option>
+				</div>
+			</select>
+
+			<select>
+				<button>
+					<selectedcontent></selectedcontent>
+				</button>
+				<div class="list">
+					<optgroup label="Stroke Style">
+						<legend><span>Stroke Style</span></legend>
+						<option value="solid" selected><span>Solid</span></option>
+						<option value="dashed"><span>Dashed</span></option>
+						<option value="dotted"><span>Dotted</span></option>
+					</optgroup>
+					<optgroup label="Stroke Cap">
+						<legend><span>Stroke Cap</span></legend>
+						<option value="butt"><span>Butt</span></option>
+						<option value="round"><span>Round</span></option>
+						<option value="square"><span>Square</span></option>
+					</optgroup>
+				</div>
+			</select>
+
+			<select dir="rtl" lang="ar">
+				<button>
+					<selectedcontent></selectedcontent>
+				</button>
+				<div class="list">
+					<optgroup label="مدينة التوصيل">
+						<legend><span>مدينة التوصيل</span></legend>
+						<option value="riyadh" selected>
+							<svg class="icon" viewBox="0 0 24 24">
+								<path d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"></path>
+								<path d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z"></path>
+							</svg>
+							<span>الرياض</span>
+						</option>
+						<option value="jeddah">
+							<svg class="icon" viewBox="0 0 24 24">
+								<path d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"></path>
+								<path d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z"></path>
+							</svg>
+							<span>جدة</span>
+						</option>
+						<option value="dammam">
+							<svg class="icon" viewBox="0 0 24 24">
+								<path d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"></path>
+								<path d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z"></path>
+							</svg>
+							<span>الدمام</span>
+						</option>
+						<option value="mecca">
+							<svg class="icon" viewBox="0 0 24 24">
+								<path d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"></path>
+								<path d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z"></path>
+							</svg>
+							<span>مكة المكرمة</span>
+						</option>
+						<option value="medina">
+							<svg class="icon" viewBox="0 0 24 24">
+								<path d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"></path>
+								<path d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z"></path>
+							</svg>
+							<span>المدينة المنورة</span>
+						</option>
+					</optgroup>
+				</div>
+			</select>
+
+			<!-- Arabic Support Ticket Categories (RTL) - Long list with optgroups -->
+			<select dir="rtl" lang="ar">
+				<button>
+					<selectedcontent></selectedcontent>
+				</button>
+				<div class="list">
+					<optgroup label="الدعم الفني">
+						<legend><span>الدعم الفني</span></legend>
+						<option value="computer-issue" selected>
+							<svg class="icon" viewBox="0 0 24 24">
+								<path
+									d="M9 17.25v1.007a3 3 0 0 1-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0 1 15 18.257V17.25m6-12V15a2.25 2.25 0 0 1-2.25 2.25H5.25A2.25 2.25 0 0 1 3 15V5.25m18 0A2.25 2.25 0 0 0 18.75 3H5.25A2.25 2.25 0 0 0 3 5.25m18 0V12a2.25 2.25 0 0 1-2.25 2.25H5.25A2.25 2.25 0 0 1 3 12V5.25"
+								></path>
+							</svg>
+							<span>مشكلة في الحاسوب</span>
+						</option>
+						<option value="wifi-issue">
+							<svg class="icon" viewBox="0 0 24 24">
+								<path d="M8.288 15.038a5.25 5.25 0 0 1 7.424 0M5.106 11.856c3.807-3.808 9.98-3.808 13.788 0M1.924 8.674c5.565-5.565 14.587-5.565 20.152 0M12.53 18.22l-.53.53-.53-.53a.75.75 0 0 1 1.06 0Z"></path>
+							</svg>
+							<span>مشكلة في الاتصال</span>
+						</option>
+						<option value="software-bug">
+							<svg class="icon" viewBox="0 0 24 24">
+								<path
+									d="M12 12.75c1.148 0 2.278.08 3.383.237 1.037.146 1.866.966 1.866 2.013 0 3.728-2.35 6.75-5.25 6.75S6.75 18.728 6.75 15c0-1.046.83-1.867 1.866-2.013A24.204 24.204 0 0 1 12 12.75Zm0 0c2.883 0 5.647.508 8.207 1.44a23.91 23.91 0 0 1-1.152 6.06M12 12.75c-2.883 0-5.647.508-8.208 1.44.125 2.104.52 4.136 1.153 6.06M12 12.75a2.25 2.25 0 0 0 2.248-2.354M12 12.75a2.25 2.25 0 0 1-2.248-2.354M12 8.25c.995 0 1.971-.08 2.922-.236.403-.066.74-.358.795-.762a3.778 3.778 0 0 0-.399-2.25M12 8.25c-.995 0-1.97-.08-2.922-.236-.402-.066-.74-.358-.795-.762a3.734 3.734 0 0 1 .4-2.253M12 8.25a2.25 2.25 0 0 0-2.248 2.146M12 8.25a2.25 2.25 0 0 1 2.248 2.146M8.683 5a6.032 6.032 0 0 1 6.634 0M9.752 10.396a18.596 18.596 0 0 1 4.496 0M14.248 10.396a3.778 3.778 0 0 0 .552-.294m-9.6 0a3.778 3.778 0 0 1 .552.294"
+								></path>
+							</svg>
+							<span>خطأ في البرنامج</span>
+						</option>
+						<option value="server-down">
+							<svg class="icon" viewBox="0 0 24 24">
+								<path
+									d="M21.75 17.25v-.228a4.5 4.5 0 0 0-.12-1.03l-2.268-9.64a3.375 3.375 0 0 0-3.285-2.602H7.923a3.375 3.375 0 0 0-3.285 2.602l-2.268 9.64a4.5 4.5 0 0 0-.12 1.03v.228m19.5 0a3 3 0 0 1-3 3H5.25a3 3 0 0 1-3-3m19.5 0a3 3 0 0 0-3-3H5.25a3 3 0 0 0-3 3m16.5 0h.008v.008h-.008v-.008Zm-3 0h.008v.008h-.008v-.008Z"
+								></path>
+							</svg>
+							<span>الخادم لا يستجيب</span>
+						</option>
+						<option value="slow-performance">
+							<svg class="icon" viewBox="0 0 24 24">
+								<path
+									d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z"
+								></path>
+							</svg>
+							<span>بطء في الأداء</span>
+						</option>
+					</optgroup>
+					<optgroup label="الحساب والأمان">
+						<legend><span>الحساب والأمان</span></legend>
+						<option value="forgot-password">
+							<svg class="icon" viewBox="0 0 24 24">
+								<path d="M15.75 5.25a3 3 0 0 1 3 3m3 0a6 6 0 0 1-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1 1 21.75 8.25Z"></path>
+							</svg>
+							<span>نسيت كلمة المرور</span>
+						</option>
+						<option value="account-locked">
+							<svg class="icon" viewBox="0 0 24 24">
+								<path d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z"></path>
+							</svg>
+							<span>الحساب مغلق</span>
+						</option>
+						<option value="two-factor">
+							<svg class="icon" viewBox="0 0 24 24">
+								<path d="M10.5 1.5H8.25A2.25 2.25 0 0 0 6 3.75v16.5a2.25 2.25 0 0 0 2.25 2.25h7.5A2.25 2.25 0 0 0 18 20.25V3.75a2.25 2.25 0 0 0-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 18.75h3"></path>
+							</svg>
+							<span>التحقق بخطوتين</span>
+						</option>
+						<option value="suspicious-activity">
+							<svg class="icon" viewBox="0 0 24 24">
+								<path d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"></path>
+							</svg>
+							<span>نشاط مشبوه</span>
+						</option>
+						<option value="update-email">
+							<svg class="icon" viewBox="0 0 24 24">
+								<path
+									d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75"
+								></path>
+							</svg>
+							<span>تحديث البريد الإلكتروني</span>
+						</option>
+						<option value="delete-account">
+							<svg class="icon" viewBox="0 0 24 24">
+								<path d="M22 10.5h-6m-2.25-4.125a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0ZM4 19.235v-.11a6.375 6.375 0 0 1 12.75 0v.109A12.318 12.318 0 0 1 10.374 21c-2.331 0-4.512-.645-6.374-1.766Z"></path>
+							</svg>
+							<span>حذف الحساب</span>
+						</option>
+					</optgroup>
+					<optgroup label="المدفوعات والفواتير">
+						<legend><span>المدفوعات والفواتير</span></legend>
+						<option value="payment-failed">
+							<svg class="icon" viewBox="0 0 24 24">
+								<path d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 0 0 2.25-2.25V6.75A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25v10.5A2.25 2.25 0 0 0 4.5 19.5Z"></path>
+							</svg>
+							<span>فشل في الدفع</span>
+						</option>
+						<option value="refund-request">
+							<svg class="icon" viewBox="0 0 24 24">
+								<path d="M8.25 9.75h4.875a2.625 2.625 0 0 1 0 5.25H12M8.25 9.75 10.5 7.5M8.25 9.75 10.5 12m9-7.243V21.75l-3.75-1.5-3.75 1.5-3.75-1.5-3.75 1.5V4.757c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0 1 11.186 0c1.1.128 1.907 1.077 1.907 2.185Z"
+								></path>
+							</svg>
+							<span>طلب استرداد</span>
+						</option>
+						<option value="invoice-issue">
+							<svg class="icon" viewBox="0 0 24 24">
+								<path
+									d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z"
+								></path>
+							</svg>
+							<span>مشكلة في الفاتورة</span>
+						</option>
+						<option value="update-payment">
+							<svg class="icon" viewBox="0 0 24 24">
+								<path d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"></path>
+							</svg>
+							<span>تحديث طريقة الدفع</span>
+						</option>
+						<option value="subscription">
+							<svg class="icon" viewBox="0 0 24 24">
+								<path d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5"
+								></path>
+							</svg>
+							<span>إدارة الاشتراك</span>
+						</option>
+						<option value="promo-code">
+							<svg class="icon" viewBox="0 0 24 24">
+								<path d="M9.568 3H5.25A2.25 2.25 0 0 0 3 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 0 0 5.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 0 0 9.568 3Z"></path>
+								<path d="M6 6h.008v.008H6V6Z"></path>
+							</svg>
+							<span>رمز ترويجي</span>
+						</option>
+					</optgroup>
+					<optgroup label="الشحن والتوصيل">
+						<legend><span>الشحن والتوصيل</span></legend>
+						<option value="track-order">
+							<svg class="icon" viewBox="0 0 24 24">
+								<path
+									d="M8.25 18.75a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 0 1-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 0 0-3.213-9.193 2.056 2.056 0 0 0-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 0 0-10.026 0 1.106 1.106 0 0 0-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12"
+								></path>
+							</svg>
+							<span>تتبع الطلب</span>
+						</option>
+						<option value="delayed-delivery">
+							<svg class="icon" viewBox="0 0 24 24">
+								<path d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"></path>
+							</svg>
+							<span>تأخر في التوصيل</span>
+						</option>
+						<option value="wrong-address">
+							<svg class="icon" viewBox="0 0 24 24">
+								<path d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"></path>
+								<path d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z"></path>
+							</svg>
+							<span>عنوان خاطئ</span>
+						</option>
+						<option value="damaged-package">
+							<svg class="icon" viewBox="0 0 24 24">
+								<path
+									d="m20.25 7.5-.625 10.632a2.25 2.25 0 0 1-2.247 2.118H6.622a2.25 2.25 0 0 1-2.247-2.118L3.75 7.5m6 4.125 2.25 2.25m0 0 2.25 2.25M12 13.875l2.25-2.25M12 13.875l-2.25 2.25M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125Z"
+								></path>
+							</svg>
+							<span>طرد تالف</span>
+						</option>
+						<option value="missing-item">
+							<svg class="icon" viewBox="0 0 24 24">
+								<path d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"></path>
+							</svg>
+							<span>منتج مفقود</span>
+						</option>
+						<option value="return-request">
+							<svg class="icon" viewBox="0 0 24 24">
+								<path d="M9 15 3 9m0 0 6-6M3 9h12a6 6 0 0 1 0 12h-3"></path>
+							</svg>
+							<span>طلب إرجاع</span>
+						</option>
+					</optgroup>
+					<optgroup label="المنتجات والخدمات">
+						<legend><span>المنتجات والخدمات</span></legend>
+						<option value="product-question">
+							<svg class="icon" viewBox="0 0 24 24">
+								<path d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 5.25h.008v.008H12v-.008Z"></path>
+							</svg>
+							<span>استفسار عن منتج</span>
+						</option>
+						<option value="out-of-stock">
+							<svg class="icon" viewBox="0 0 24 24">
+								<path
+									d="M20.25 7.5l-.625 10.632a2.25 2.25 0 0 1-2.247 2.118H6.622a2.25 2.25 0 0 1-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125Z"
+								></path>
+							</svg>
+							<span>المنتج غير متوفر</span>
+						</option>
+						<option value="warranty-claim">
+							<svg class="icon" viewBox="0 0 24 24">
+								<path d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z"></path>
+							</svg>
+							<span>مطالبة بالضمان</span>
+						</option>
+						<option value="product-defect">
+							<svg class="icon" viewBox="0 0 24 24">
+								<path d="M18.364 18.364A9 9 0 0 0 5.636 5.636m12.728 12.728A9 9 0 0 1 5.636 5.636m12.728 12.728L5.636 5.636"></path>
+							</svg>
+							<span>عيب في المنتج</span>
+						</option>
+						<option value="size-exchange">
+							<svg class="icon" viewBox="0 0 24 24">
+								<path d="M7.5 21 3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5"></path>
+							</svg>
+							<span>تبديل المقاس</span>
+						</option>
+					</optgroup>
+					<optgroup label="اقتراحات وشكاوى">
+						<legend><span>اقتراحات وشكاوى</span></legend>
+						<option value="suggestion">
+							<svg class="icon" viewBox="0 0 24 24">
+								<path
+									d="M12 18v-5.25m0 0a6.01 6.01 0 0 0 1.5-.189m-1.5.189a6.01 6.01 0 0 1-1.5-.189m3.75 7.478a12.06 12.06 0 0 1-4.5 0m3.75 2.383a14.406 14.406 0 0 1-3 0M14.25 18v-.192c0-.983.658-1.823 1.508-2.316a7.5 7.5 0 1 0-7.517 0c.85.493 1.509 1.333 1.509 2.316V18"
+								></path>
+							</svg>
+							<span>اقتراح تحسين</span>
+						</option>
+						<option value="complaint">
+							<svg class="icon" viewBox="0 0 24 24">
+								<path
+									d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 0 1 .865-.501 48.172 48.172 0 0 0 3.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018Z"
+								></path>
+							</svg>
+							<span>تقديم شكوى</span>
+						</option>
+						<option value="feedback">
+							<svg class="icon" viewBox="0 0 24 24">
+								<path
+									d="M11.48 3.499a.562.562 0 0 1 1.04 0l2.125 5.111a.563.563 0 0 0 .475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 0 0-.182.557l1.285 5.385a.562.562 0 0 1-.84.61l-4.725-2.885a.562.562 0 0 0-.586 0L6.982 20.54a.562.562 0 0 1-.84-.61l1.285-5.386a.562.562 0 0 0-.182-.557l-4.204-3.602a.562.562 0 0 1 .321-.988l5.518-.442a.563.563 0 0 0 .475-.345L11.48 3.5Z"
+								></path>
+							</svg>
+							<span>تقييم الخدمة</span>
+						</option>
+						<option value="other">
+							<svg class="icon" viewBox="0 0 24 24">
+								<path d="M8.625 12a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H8.25m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H12m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0h-.375M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"></path>
+							</svg>
+							<span>موضوع آخر</span>
+						</option>
+					</optgroup>
+				</div>
+			</select>
+
+			<!-- Toggle Select -->
+			<select class="toggle">
+				<button>
+					<selectedcontent></selectedcontent>
+				</button>
+				<div class="list">
+					<option value="on" selected>
+						<span class="indicator on"></span>
+						<span>On</span>
+					</option>
+					<option value="off">
+						<span class="indicator off"></span>
+						<span>Off</span>
+					</option>
+					<option value="disabled">
+						<span class="indicator disabled"></span>
+						<span>Disabled</span>
+					</option>
+				</div>
+			</select>
+
+			<!-- Person Selector with Avatars -->
+			<select class="person-select">
+				<button>
+					<selectedcontent></selectedcontent>
+				</button>
+				<div class="list">
+					<option value="maria" selected>
+						<img class="avatar" src="https://i.pravatar.cc/48?img=5" alt="" />
+						<span>Maria Chen</span>
+					</option>
+					<option value="james">
+						<img class="avatar" src="https://i.pravatar.cc/48?img=12" alt="" />
+						<span>James Wilson</span>
+					</option>
+					<option value="sofia">
+						<img class="avatar" src="https://i.pravatar.cc/48?img=9" alt="" />
+						<span>Sofia Rodriguez</span>
+					</option>
+					<option value="alex">
+						<img class="avatar" src="https://i.pravatar.cc/48?img=8" alt="" />
+						<span>Alex Thompson</span>
+					</option>
+					<option value="priya">
+						<img class="avatar" src="https://i.pravatar.cc/48?img=25" alt="" />
+						<span>Priya Sharma</span>
+					</option>
+					<option value="marcus">
+						<img class="avatar" src="https://i.pravatar.cc/48?img=53" alt="" />
+						<span>Marcus Johnson</span>
+					</option>
+					<option value="emma">
+						<img class="avatar" src="https://i.pravatar.cc/48?img=32" alt="" />
+						<span>Emma Larsson</span>
+					</option>
+				</div>
+			</select>
+
+			<!-- Color Space Picker -->
+			<select class="colorspace-select">
+				<button>
+					<span class="label">Color Space</span>
+					<selectedcontent></selectedcontent>
+				</button>
+				<div class="list">
+					<optgroup label="Standard">
+						<legend><span>Standard</span></legend>
+						<option value="srgb" selected><span>srgb</span></option>
+						<option value="srgb-linear"><span>srgb-linear</span></option>
+						<option value="hsl"><span>hsl</span></option>
+						<option value="hwb"><span>hwb</span></option>
+					</optgroup>
+					<optgroup label="HD Display">
+						<legend><span>HD Display</span></legend>
+						<option value="display-p3"><span>display-p3</span></option>
+						<option value="a98-rgb"><span>a98-rgb</span></option>
+					</optgroup>
+					<optgroup label="Ultra HD">
+						<legend><span>Ultra HD</span></legend>
+						<option value="lab"><span>lab</span></option>
+						<option value="lch"><span>lch</span></option>
+						<option value="oklab"><span>oklab</span></option>
+						<option value="oklch"><span>oklch</span></option>
+						<option value="rec2020"><span>rec2020</span></option>
+						<option value="prophoto-rgb"><span>prophoto-rgb</span></option>
+					</optgroup>
+					<optgroup label="Reference">
+						<legend><span>Reference</span></legend>
+						<option value="xyz"><span>xyz</span></option>
+						<option value="xyz-d50"><span>xyz-d50</span></option>
+						<option value="xyz-d65"><span>xyz-d65</span></option>
+					</optgroup>
+				</div>
+			</select>
+
+			<!-- Publication Status with Descriptions -->
+			<select class="status-select">
+				<button>
+					<selectedcontent></selectedcontent>
+				</button>
+				<div class="list">
+					<option value="published" selected>
+						<span class="custom-option">
+							<span>Published</span>
+							<span class="description">Live on the web</span>
+						</span>
+					</option>
+					<option value="draft">
+						<span class="custom-option">
+							<span>Draft</span>
+							<span class="description">Not available on the web</span>
+						</span>
+					</option>
+					<option value="scheduled">
+						<span class="custom-option">
+							<span>Scheduled</span>
+							<span class="description">Will go live at a set time</span>
+						</span>
+					</option>
+					<option value="archived">
+						<span class="custom-option">
+							<span>Archived</span>
+							<span class="description">Removed from public view</span>
+						</span>
+					</option>
+				</div>
+			</select>
+
+			<!-- Language Picker -->
+			<select class="language-select">
+				<button>
+					<selectedcontent></selectedcontent>
+				</button>
+				<div class="list">
+					<optgroup label="Americas">
+						<legend><span>Americas</span></legend>
+						<option value="us" selected>
+							<span>🇺🇸 &nbsp; United States</span>
+						</option>
+						<option value="ca"><span>🇨🇦 &nbsp; Canada</span></option>
+						<option value="mx"><span>🇲🇽 &nbsp; Mexico</span></option>
+						<option value="br"><span>🇧🇷 &nbsp; Brazil</span></option>
+						<option value="ar"><span>🇦🇷 &nbsp; Argentina</span></option>
+						<option value="co"><span>🇨🇴 &nbsp; Colombia</span></option>
+						<option value="cl"><span>🇨🇱 &nbsp; Chile</span></option>
+						<option value="pe"><span>🇵🇪 &nbsp; Peru</span></option>
+					</optgroup>
+					<optgroup label="Europe">
+						<legend><span>Europe</span></legend>
+						<option value="gb"><span>🇬🇧 &nbsp; United Kingdom</span></option>
+						<option value="fr"><span>🇫🇷 &nbsp; France</span></option>
+						<option value="de"><span>🇩🇪 &nbsp; Germany</span></option>
+						<option value="es"><span>🇪🇸 &nbsp; Spain</span></option>
+						<option value="it"><span>🇮🇹 &nbsp; Italy</span></option>
+						<option value="pt"><span>🇵🇹 &nbsp; Portugal</span></option>
+						<option value="nl"><span>🇳🇱 &nbsp; Netherlands</span></option>
+						<option value="be"><span>🇧🇪 &nbsp; Belgium</span></option>
+						<option value="ch"><span>🇨🇭 &nbsp; Switzerland</span></option>
+						<option value="at"><span>🇦🇹 &nbsp; Austria</span></option>
+						<option value="se"><span>🇸🇪 &nbsp; Sweden</span></option>
+						<option value="no"><span>🇳🇴 &nbsp; Norway</span></option>
+						<option value="dk"><span>🇩🇰 &nbsp; Denmark</span></option>
+						<option value="fi"><span>🇫🇮 &nbsp; Finland</span></option>
+						<option value="ie"><span>🇮🇪 &nbsp; Ireland</span></option>
+						<option value="pl"><span>🇵🇱 &nbsp; Poland</span></option>
+						<option value="cz"><span>🇨🇿 &nbsp; Czech Republic</span></option>
+						<option value="hu"><span>🇭🇺 &nbsp; Hungary</span></option>
+						<option value="ro"><span>🇷🇴 &nbsp; Romania</span></option>
+						<option value="gr"><span>🇬🇷 &nbsp; Greece</span></option>
+						<option value="ua"><span>🇺🇦 &nbsp; Ukraine</span></option>
+						<option value="ru"><span>🇷🇺 &nbsp; Russia</span></option>
+						<option value="tr"><span>🇹🇷 &nbsp; Turkey</span></option>
+					</optgroup>
+					<optgroup label="Asia & Pacific">
+						<legend><span>Asia & Pacific</span></legend>
+						<option value="jp"><span>🇯🇵 &nbsp; Japan</span></option>
+						<option value="kr"><span>🇰🇷 &nbsp; South Korea</span></option>
+						<option value="cn"><span>🇨🇳 &nbsp; China</span></option>
+						<option value="in"><span>🇮🇳 &nbsp; India</span></option>
+						<option value="sg"><span>🇸🇬 &nbsp; Singapore</span></option>
+						<option value="my"><span>🇲🇾 &nbsp; Malaysia</span></option>
+						<option value="id"><span>🇮🇩 &nbsp; Indonesia</span></option>
+						<option value="ph"><span>🇵🇭 &nbsp; Philippines</span></option>
+						<option value="th"><span>🇹🇭 &nbsp; Thailand</span></option>
+						<option value="vn"><span>🇻🇳 &nbsp; Vietnam</span></option>
+						<option value="au"><span>🇦🇺 &nbsp; Australia</span></option>
+						<option value="nz"><span>🇳🇿 &nbsp; New Zealand</span></option>
+					</optgroup>
+					<optgroup label="Africa">
+						<legend><span>Africa</span></legend>
+						<option value="sa"><span>🇸🇦 &nbsp; Saudi Arabia</span></option>
+						<option value="ae">
+							<span>🇦🇪 &nbsp; United Arab Emirates</span>
+						</option>
+						<option value="il"><span>🇮🇱 &nbsp; Israel</span></option>
+						<option value="eg"><span>🇪🇬 &nbsp; Egypt</span></option>
+						<option value="za"><span>🇿🇦 &nbsp; South Africa</span></option>
+						<option value="ng"><span>🇳🇬 &nbsp; Nigeria</span></option>
+						<option value="ke"><span>🇰🇪 &nbsp; Kenya</span></option>
+					</optgroup>
+				</div>
+			</select>
+		</section>
+	</DemoLayout>
+</RootLayout>

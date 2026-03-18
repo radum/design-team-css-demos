@@ -1,0 +1,13 @@
+---
+import NavBar from '../components/NavBar.astro';
+const { type }: { type?: 'app' | 'full' } = Astro.props;
+---
+
+<div id={(type ? ` ${type}` : "app")}>
+    <slot />
+
+    <NavBar />
+
+    <div class="ticks"></div>
+    <section id="spacer"></section>
+</div>

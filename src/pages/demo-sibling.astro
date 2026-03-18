@@ -1,0 +1,189 @@
+---
+import RootLayout from '../layouts/RootLayout.astro';
+import DemoLayout from '../layouts/DemoLayout.astro';
+---
+
+<script type="module">
+	const palette = document.querySelector('.palette');
+	const addSwatchButton = document.getElementById('addSwatch');
+	const removeSwatchButton = document.getElementById('removeSwatch');
+
+	addSwatchButton.addEventListener('click', () => {
+		const swatch = document.createElement('div');
+		swatch.className = 'swatch';
+		palette.appendChild(swatch);
+	});
+
+	removeSwatchButton.addEventListener('click', () => {
+		if (palette.children.length > 0) {
+			palette.removeChild(palette.lastChild);
+		}
+	});
+
+    // Demo 2: Sibling-Dependent Layout
+    const cardsContainer = document.querySelector('.cards');
+    const addCardButton = document.getElementById('addCard');
+    const removeCardButton = document.getElementById('removeCard');
+
+    addCardButton.addEventListener('click', () => {
+        const cardCount = cardsContainer.children.length + 1;
+        const noCards = Math.round(cardCount / 2);
+        document.documentElement.style.setProperty('--no-cards', noCards);
+        const cardTpl = `
+        <div class="card">
+            <img src="https://unsplash.it/640/425" alt="Demo image" style="width:100%; border-radius: var(--radius-sm);">
+            <h3>Card Title</h3>
+            <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p>
+            <p>By Radu.</p>
+        </div>`;
+
+        const div = document.createElement('div');
+        div.innerHTML = cardTpl;
+        cardsContainer.appendChild(div.firstElementChild);
+    });
+
+    removeCardButton.addEventListener('click', () => {
+        if (cardsContainer.children.length > 0) {
+            cardsContainer.removeChild(cardsContainer.lastChild);
+        }
+    });
+</script>
+
+<style is:global>
+	:root {
+		--surface-0: #0c0e12;
+		--surface-1: #151820;
+		--surface-2: #1e232d;
+		--surface-3: #2a3140;
+
+		--text-primary: #e4e7ec;
+		--text-secondary: #8b95a5;
+		--text-muted: #5c6370;
+
+		--accent: #6c9eff;
+		--accent-dim: #4a7bd4;
+		--success: #4ade80;
+
+		--radius-sm: 4px;
+		--radius-md: 8px;
+		--radius-lg: 14px;
+
+        --no-cards: 2;
+	}
+
+	/* ================================
+   Demo 1: Dynamic Color Palette
+   ================================ */
+	.palette {
+		display: flex;
+		gap: 6px;
+		padding: 1.25rem;
+		background: var(--surface-1);
+		border-radius: var(--radius-lg);
+	}
+
+	.swatch {
+		flex: 1;
+		height: 80px;
+		border-radius: var(--radius-md);
+		transition:
+			transform 0.2s,
+			box-shadow 0.2s;
+
+		/* THE MAGIC: Calculate hue from position */
+		--index: sibling-index();
+		--total: sibling-count();
+		--hue: calc(360 / var(--total) * (var(--index) - 1));
+
+		background: hsl(var(--hue) 70% 55%);
+	}
+
+	.swatch:hover {
+		transform: scaleY(1.15);
+		box-shadow: 0 4px 20px hsl(var(--hue) 70% 40% / 0.5);
+		z-index: 1;
+	}
+
+	.demo-section-2 {
+		margin-bottom: 2rem;
+
+		.cards {
+			display: flex;
+			flex-wrap: nowrap;
+			gap: 1.25rem;
+			padding: 1rem;
+			background-color: white;
+			margin: 1rem;
+			border-radius: var(--radius-md);
+		}
+
+		.card {
+			background: var(--surface-2);
+			color: var(--text-primary);
+			padding: 1rem;
+			border-radius: var(--radius-md);
+
+			margin-top: calc(30px * abs(var(--no-cards, 3) - sibling-index()));
+		}
+	}
+</style>
+
+<RootLayout>
+	<DemoLayout>
+		<section id="center">
+			<section class="demo-section-1">
+				<h2>Dynamic Hue Distribution</h2>
+				<p class="demo-desc">Each swatch calculates its hue by dividing the color wheel by sibling-count(), then multiplying by its sibling-index()</p>
+
+				<div class="palette">
+					<div class="swatch"></div>
+					<div class="swatch"></div>
+					<div class="swatch"></div>
+					<div class="swatch"></div>
+					<div class="swatch"></div>
+					<div class="swatch"></div>
+					<div class="swatch"></div>
+					<div class="swatch"></div>
+					<div class="swatch"></div>
+					<div class="swatch"></div>
+					<div class="swatch"></div>
+					<div class="swatch"></div>
+				</div>
+
+				<button type="button" id="addSwatch">Add</button>
+				<button type="button" id="removeSwatch" style="margin-left: 1rem;">Remove</button>
+			</section>
+
+			<section id="spacer"></section>
+			<section id="spacer"></section>
+
+			<section class="demo-section-2">
+                <h2>Dynamic Card spacing Distribution</h2>
+
+				<div class="cards">
+					<div class="card">
+						<img src="https://unsplash.it/640/425" alt="Demo image" style="width:100%; border-radius: var(--radius-sm);" />
+						<h3>Card Title</h3>
+						<p>Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p>
+						<p>By Radu.</p>
+					</div>
+					<div class="card">
+						<img src="https://unsplash.it/640/425" alt="Demo image" style="width:100%; border-radius: var(--radius-sm);" />
+						<h3>Card Title</h3>
+						<p>Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p>
+						<p>By Radu.</p>
+					</div>
+					<div class="card">
+						<img src="https://unsplash.it/640/425" alt="Demo image" style="width:100%; border-radius: var(--radius-sm);" />
+						<h3>Card Title</h3>
+						<p>Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p>
+						<p>By Radu.</p>
+					</div>
+				</div>
+
+				<button type="button" id="addCard">Add</button>
+				<button type="button" id="removeCard" style="margin-left: 1rem;">Remove</button>
+			</section>
+		</section>
+	</DemoLayout>
+</RootLayout>

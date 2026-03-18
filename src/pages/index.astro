@@ -1,0 +1,594 @@
+---
+import RootLayout from '../layouts/RootLayout.astro';
+import DemoLayout from '../layouts/DemoLayout.astro';
+---
+
+<style is:global>
+@import url('https://unpkg.com/normalize.css') layer(normalize);
+
+@font-face {
+  font-family: 'Geist Sans';
+  src: url('https://assets.codepen.io/605876/GeistVF.ttf');
+}
+
+*,
+*::before,
+*::after {
+  transform-style: preserve-3d;
+}
+
+@layer normalize, base, demo;
+
+@layer demo {
+  .words,
+  .word,
+  .char,
+  .char::before,
+  .char::after {
+    transform-style: preserve-3d;
+    display: inline-block;
+  }
+  main {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    transition: transform 0.5s;
+  }
+  [data-debug='true'] main {
+    transform: rotateX(-23deg) rotateY(45deg);
+  }
+
+  [data-debug='true'] .char::after,
+  [data-debug='true'] .char::before,
+  [data-debug='true'] .char {
+    --opacity: 1;
+    opacity: 1;
+    animation: none;
+  }
+
+  [data-debug='true'] p:not(:nth-of-type(2)) {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  p {
+    transition: opacity 0.5s;
+  }
+
+  .char {
+    display: inline-block;
+  }
+
+  [data-debug='true'] .char::before {
+    -webkit-text-stroke: 2px hsl(0 0% 100% / 0.5);
+    color: hsl(0 0% 100% / 0.25);
+  }
+  [data-debug='true'] .char {
+    outline: 2px solid red;
+  }
+
+  [data-debug='true'][data-scrub='true'] p .char {
+    animation: none;
+    --offset: calc(
+      (sin((var(--char-index) / var(--char-total)) * 90deg) * 100)
+    );
+    --r: calc((var(--progress) * 2) - var(--offset));
+    transform: rotateX(calc((clamp(0, var(--r), 100) / 100) * 90deg));
+  }
+
+  p:nth-of-type(1) {
+    --idx: 0;
+  }
+  p:nth-of-type(2) {
+    --idx: 1;
+  }
+  p:nth-of-type(3) {
+    --idx: 2;
+  }
+  p:nth-of-type(4) {
+    --idx: 3;
+  }
+
+  main p {
+    --font-level: 4;
+    margin: 0;
+    font-family: 'Geist Sans', sans-serif;
+    font-weight: 120;
+    text-decoration: none;
+    width: fit-content;
+    line-height: 1;
+    vertical-align: baseline;
+  }
+
+  p .char {
+    --duration: 2.2s;
+    --delay: calc(
+      (
+          sin((var(--char-index) / var(--char-total)) * 90deg) *
+            (var(--duration) * 0.25)
+        ) - (var(--idx) * -0.25s)
+    );
+    display: inline-block;
+    animation: flip var(--duration) var(--delay) infinite ease;
+  }
+
+  [data-debug='true'] p .char {
+    animation: flip-debug calc(var(--duration) * 2) var(--delay) infinite ease;
+    /* animation: none; */
+  }
+
+  @keyframes flip-debug {
+    0%,
+    25% {
+      transform: rotateX(0deg);
+    }
+    50%,
+    100% {
+      transform: rotateX(90deg);
+    }
+  }
+
+  @keyframes flip {
+    25%,
+    100% {
+      transform: rotateX(90deg);
+    }
+  }
+
+  .char {
+    color: transparent;
+    position: relative;
+    height: 0.9lh;
+    line-height: 1;
+    vertical-align: middle;
+
+    &::after,
+    &::before {
+      color: canvasText;
+      content: attr(data-char);
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      height: 1lh;
+      width: 100%;
+      animation: fade var(--duration) var(--delay) infinite ease;
+    }
+
+    &::before {
+      transform-origin: 50% 50%;
+      translate: -50% -50%;
+      transform: rotateX(-90deg) translate3d(0, 0, 0.45lh);
+      opacity: 0;
+      --opacity: 1;
+    }
+
+    &::after {
+      translate: -50% -50%;
+      transform: translate3d(0, 0, 0.45lh);
+    }
+  }
+
+  @keyframes fade {
+    30%,
+    100% {
+      opacity: var(--opacity, 0);
+    }
+  }
+}
+
+@layer base {
+  :root {
+    --font-size-min: 16;
+    --font-size-max: 20;
+    --font-ratio-min: 1.2;
+    --font-ratio-max: 1.33;
+    --font-width-min: 375;
+    --font-width-max: 1500;
+  }
+
+  html {
+    color-scheme: light dark;
+  }
+
+  [data-theme='light'] {
+    color-scheme: light only;
+  }
+
+  [data-theme='dark'] {
+    color-scheme: dark only;
+  }
+
+  :where(.fluid) {
+    --fluid-min: calc(
+      var(--font-size-min) * pow(var(--font-ratio-min), var(--font-level, 0))
+    );
+    --fluid-max: calc(
+      var(--font-size-max) * pow(var(--font-ratio-max), var(--font-level, 0))
+    );
+    --fluid-preferred: calc(
+      (var(--fluid-max) - var(--fluid-min)) /
+        (var(--font-width-max) - var(--font-width-min))
+    );
+    --fluid-type: clamp(
+      (var(--fluid-min) / 16) * 1rem,
+      ((var(--fluid-min) / 16) * 1rem) -
+        (((var(--fluid-preferred) * var(--font-width-min)) / 16) * 1rem) +
+        (var(--fluid-preferred) * var(--variable-unit, 100vi)),
+      (var(--fluid-max) / 16) * 1rem
+    );
+    font-size: var(--fluid-type);
+  }
+
+  *,
+  *:after,
+  *:before {
+    box-sizing: border-box;
+  }
+
+  /* body {
+    background: light-dark(white, black);
+    display: grid;
+    place-items: center;
+    min-height: 100vh;
+    font-family: 'SF Pro Text', 'SF Pro Icons', 'AOS Icons', 'Helvetica Neue',
+      Helvetica, Arial, sans-serif, system-ui;
+  } */
+
+  body::before {
+    --size: 45px;
+    --line: color-mix(in lch, canvasText, transparent 70%);
+    content: '';
+    height: 100vh;
+    width: 100vw;
+    position: fixed;
+    background: linear-gradient(
+          90deg,
+          var(--line) 1px,
+          transparent 1px var(--size)
+        )
+        50% 50% / var(--size) var(--size),
+      linear-gradient(var(--line) 1px, transparent 1px var(--size)) 50% 50% /
+        var(--size) var(--size);
+    mask: linear-gradient(-20deg, transparent 50%, white);
+    top: 0;
+    transform-style: flat;
+    pointer-events: none;
+    z-index: -1;
+  }
+
+  .bear-link {
+    color: canvasText;
+    position: fixed;
+    top: 1rem;
+    left: 1rem;
+    width: 48px;
+    aspect-ratio: 1;
+    display: grid;
+    place-items: center;
+    opacity: 0.8;
+  }
+
+  :where(.x-link, .bear-link):is(:hover, :focus-visible) {
+    opacity: 1;
+  }
+
+  .bear-link svg {
+    width: 75%;
+  }
+
+  /* Utilities */
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+  }
+}
+</style>
+
+<script type="module">
+import { Pane } from 'https://cdn.skypack.dev/tweakpane@4.0.4'
+import Splitting from 'https://cdn.skypack.dev/splitting'
+
+const config = {
+  theme: 'system',
+  debug: false,
+  scrub: false,
+  progress: 0,
+}
+
+const ctrl = new Pane({
+  title: 'Config',
+  expanded: false,
+})
+
+let scrubber
+let progress
+
+const update = () => {
+  document.documentElement.dataset.debug = config.debug
+  document.documentElement.dataset.theme = config.theme
+  document.documentElement.dataset.scrub = config.scrub
+  document.documentElement.style.setProperty('--progress', config.progress)
+  if (scrubber) scrubber.hidden = !config.debug
+  if (progress) {
+    progress.hidden = !config.debug
+    progress.disabled = !config.scrub
+  }
+}
+
+const sync = (event) => {
+  if (
+    !document.startViewTransition ||
+    event.target.controller.view.labelElement.innerText !== 'Theme'
+  )
+    return update()
+  document.startViewTransition(() => update())
+}
+
+ctrl.addBinding(config, 'debug', {
+  label: 'Debug',
+})
+
+scrubber = ctrl.addBinding(config, 'scrub', {
+  label: 'Scrub',
+  hidden: true,
+})
+
+progress = ctrl.addBinding(config, 'progress', {
+  min: 0,
+  max: 100,
+  step: 1,
+  label: 'Progress',
+  disabled: true,
+})
+
+ctrl.addBinding(config, 'theme', {
+  label: 'Theme',
+  options: {
+    System: 'system',
+    Light: 'light',
+    Dark: 'dark',
+  },
+})
+
+ctrl.on('change', sync)
+update()
+Splitting()
+
+
+// Dots
+
+const rand = (min, max) => {
+  return Math.random() * (max - min) + min;
+}
+
+// based on https://codepen.io/hexagoncircle/pen/KwPpdBZ
+class Pixel {
+  constructor(x, y, color, speed, delay, delayHide, step, boundSize) {
+    this.x = x;
+    this.y = y;
+
+    this.color = color;
+    this.speed = rand(0.1, 0.9) * speed;
+
+    this.size = 0;
+    this.sizeStep = rand(0, 0.5);
+    this.minSize = 0.5;
+    this.maxSizeAvailable = boundSize || 2;
+    this.maxSize = rand(this.minSize, this.maxSizeAvailable);
+    this.sizeDirection = 1;
+
+    this.delay = delay;
+    this.delayHide = delayHide;
+    this.counter = 0;
+    this.counterHide = 0;
+    this.counterStep = step;
+
+    this.isHidden = false;
+    this.isFlicking = false;
+  }
+
+  draw(ctx) {
+    const centerOffset = this.maxSizeAvailable * 0.5 - this.size * 0.5;
+
+    ctx.fillStyle = this.color;
+    ctx.fillRect(
+      this.x + centerOffset,
+      this.y + centerOffset,
+      this.size,
+      this.size
+    );
+  }
+
+  show() {
+    this.isHidden = false;
+    this.counterHide = 0;
+
+    if (this.counter <= this.delay) {
+      this.counter += this.counterStep;
+      return;
+    }
+
+    if (this.size >= this.maxSize) {
+      this.isFlicking = true;
+    }
+
+    if (this.isFlicking) {
+      this.flicking();
+    } else {
+      this.size += this.sizeStep;
+    }
+  }
+
+  hide() {
+    this.counter = 0;
+
+    if (this.counterHide <= this.delayHide) {
+      this.counterHide += this.counterStep;
+      if (this.isFlicking) {
+        this.flicking();
+      }
+      return;
+    }
+
+    this.isFlicking = false;
+
+    if (this.size <= 0) {
+      this.size = 0;
+      this.isHidden = true;
+      return;
+    } else {
+      this.size -= 0.05;
+    }
+  }
+
+  flicking() {
+    if (this.size >= this.maxSize) {
+      this.sizeDirection = -1;
+    } else if (this.size <= this.minSize) {
+      this.sizeDirection = 1;
+    }
+
+    this.size += this.sizeDirection * this.speed;
+  }
+}
+
+const canvas = document.createElement("canvas");
+const container = document.querySelector("#dots-container");
+const interval = 1000 / 60;
+
+container.append(canvas);
+
+const ctx = canvas.getContext("2d");
+
+let width;
+let height;
+let pixels;
+let request;
+let lastTime;
+let ticker;
+let maxTicker = 360;
+let animationDirection = 1;
+
+const getDelay = (x, y, direction) => {
+  let dx = x - width * 0.5;
+  let dy = y - height;
+
+  if (direction) {
+    dy = y;
+  }
+
+  return Math.sqrt(dx ** 2 + dy ** 2);
+}
+
+const initPixels = () => {
+  const h = Math.floor(rand(0, 360));
+  const colorsLen = 5;
+  const colors = Array.from({ length: colorsLen }, (_, index) => `hsl(${Math.floor(rand(h, h + (index + 1) * 10))} 100% ${rand(50, 100)}%)`);
+
+  const gap = 6; // Math.floor(width * 0.025)
+  const step = (width + height) * 0.005;
+  const speed = rand(0.008, 0.25);
+  const maxSize = Math.floor(gap * 0.5);
+
+  pixels = [];
+
+  for (let x = 0; x < width; x += gap) {
+    for (let y = 0; y < height; y += gap) {
+      if (x + maxSize > width || y + maxSize > height) {
+        continue;
+      }
+
+      const color = colors[Math.floor(Math.random() * colorsLen)];
+      const delay = getDelay(x, y);
+      const delayHide = getDelay(x, y);
+
+      pixels.push(new Pixel(x, y, color, speed, delay, delayHide, step, maxSize));
+    }
+  }
+}
+
+const animate = () => {
+  request = requestAnimationFrame(animate);
+
+  const now = performance.now();
+  const diff = now - (lastTime || 0);
+
+  if (diff < interval) {
+    return;
+  }
+
+  lastTime = now - (diff % interval);
+
+  ctx.clearRect(0, 0, width, height);
+
+  if (ticker >= maxTicker) {
+    animationDirection = -1;
+  } else if (ticker <= 0) {
+    animationDirection = 1;
+  }
+
+  let allHidden = true;
+
+  pixels.forEach((pixel) => {
+    if (animationDirection > 0) {
+      pixel.show();
+    } else {
+      pixel.hide();
+      allHidden = allHidden && pixel.isHidden;
+    }
+
+    pixel.draw(ctx);
+  });
+
+  ticker += animationDirection;
+
+  if (animationDirection < 0 && allHidden) {
+    ticker = 0;
+  }
+}
+
+const resize = () => {
+  cancelAnimationFrame(request);
+
+  const rect = container.getBoundingClientRect();
+
+  width = Math.floor(rect.width);
+  height = Math.floor(rect.height);
+
+  canvas.width = width;
+  canvas.height = height;
+
+  initPixels();
+
+  ticker = 0;
+
+  animate();
+}
+
+new ResizeObserver(resize).observe(container);
+
+// document.addEventListener('click', resize);
+</script>
+
+<RootLayout>
+	<DemoLayout>
+		<section id="center">
+			<main>
+				<p data-splitting="" class="fluid">Everybody can cook.</p>
+				<p data-splitting="" class="fluid">You can cook.</p>
+				<p data-splitting="" class="fluid">Just cook it.</p>
+				<p data-splitting="" class="fluid">Web / CSS.</p>
+			</main>
+			<div id="dots-container" style="width: 100%; height: 300px;"></div>
+		</section>
+
+		<!-- <div class="ticks">Summary</div> -->
+	</DemoLayout>
+</RootLayout>

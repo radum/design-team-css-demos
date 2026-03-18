@@ -1,0 +1,456 @@
+---
+import RootLayout from '../layouts/RootLayout.astro';
+import DemoLayout from '../layouts/DemoLayout.astro';
+---
+
+<script type="module">
+	const PALETTES = [
+		{ na: 'Terracotta', nb: 'Sea Glass', a: '#d4845a', b: '#6b9e8f' },
+		{ na: 'Blush', nb: 'Dusk', a: '#e8a5a5', b: '#7b6fa0' },
+		{ na: 'Butter', nb: 'Forest', a: '#f0d070', b: '#3d7a5a' },
+		{ na: 'Coral', nb: 'Sky', a: '#f07860', b: '#78b8e0' },
+		{ na: 'Sand', nb: 'Slate', a: '#d8c090', b: '#607890' },
+		{ na: 'Rose', nb: 'Olive', a: '#d87890', b: '#8a9060' },
+		{ na: 'Marigold', nb: 'Plum', a: '#e8a040', b: '#805878' },
+		{ na: 'Mint', nb: 'Clay', a: '#98d0b0', b: '#b87060' },
+		{ na: 'Lavender', nb: 'Peach', a: '#b8a8d8', b: '#f4a87a' },
+		{ na: 'Sage', nb: 'Blush Rose', a: '#7aaa80', b: '#e090a0' },
+		{ na: 'Cerulean', nb: 'Amber', a: '#4a90c0', b: '#d4903a' },
+		{ na: 'Moss', nb: 'Rust', a: '#7a9050', b: '#c8603a' },
+		{ na: 'Periwinkle', nb: 'Melon', a: '#8890d8', b: '#f09878' },
+		{ na: 'Chartreuse', nb: 'Violet', a: '#c0d840', b: '#7848b0' },
+		{ na: 'Dusty Teal', nb: 'Sienna', a: '#5a9898', b: '#c07848' },
+		{ na: 'Powder Blue', nb: 'Blush', a: '#90c0d8', b: '#e8a0b0' }
+	];
+
+	/* ── State ────────────────────────────────────────────────────────────────── */
+	let currentPalette = 0;
+	let pct = 50; // percentage of color A (left side)
+
+	const root = document.documentElement;
+	const slider = document.getElementById('slider');
+	const track = document.getElementById('track');
+	const swA = document.getElementById('sw-a');
+	const swB = document.getElementById('sw-b');
+	const nameA = document.getElementById('nameA');
+	const nameB = document.getElementById('nameB');
+	const endA = document.getElementById('endA');
+	const endB = document.getElementById('endB');
+	const codeBox = document.getElementById('codeBox');
+	const presetsEl = document.getElementById('presets');
+
+	function applyPalette(i) {
+		currentPalette = i;
+		const p = PALETTES[i];
+
+		root.style.setProperty('--a', p.a);
+		root.style.setProperty('--b', p.b);
+
+		swA.style.background = p.a;
+		swA.style.boxShadow = `0 6px 20px color-mix(in oklch, ${p.a} 35%, transparent)`;
+		swB.style.background = p.b;
+		swB.style.boxShadow = `0 6px 20px color-mix(in oklch, ${p.b} 35%, transparent)`;
+
+		nameA.textContent = p.na;
+		nameB.textContent = p.nb;
+		endA.textContent = p.na;
+		endB.textContent = p.nb;
+
+		document.querySelectorAll('.preset-btn').forEach((btn, j) => {
+			btn.classList.toggle('active', j === i);
+		});
+
+		updateMix();
+	}
+
+	function updateMix() {
+		const p = PALETTES[currentPalette];
+
+		root.style.setProperty('--pct', pct);
+		track.style.background = `linear-gradient(to right, ${p.a}, ${p.b})`;
+		codeBox.innerHTML = `<span class="kw">color-mix</span>(in <span class="sp">oklch</span>, ` + `${p.a} <span class="num">${pct}%</span>, ${p.b})`;
+	}
+
+	slider.addEventListener('input', () => {
+		pct = 100 - parseInt(slider.value);
+		updateMix();
+	});
+
+	PALETTES.forEach((p, i) => {
+		const btn = document.createElement('button');
+		btn.className = 'preset-btn' + (i === 0 ? ' active' : '');
+		btn.innerHTML = `
+    <div class="dots">
+      <div class="dot" style="background:${p.a}"></div>
+      <div class="dot" style="background:${p.b}"></div>
+    </div>
+    ${p.na} + ${p.nb}`;
+		btn.addEventListener('click', () => applyPalette(i));
+		presetsEl.appendChild(btn);
+	});
+
+	applyPalette(0);
+</script>
+
+<style is:global>
+	@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400;1,700&family=Syne:wght@400;500;700;800&display=swap');
+
+	:root {
+		--a: #d4845a;
+		--b: #6b9e8f;
+		--pct: 50;
+		--mix: color-mix(in oklch, var(--a) calc(var(--pct) * 1%), var(--b));
+		--bg: #f7f3ee;
+		--ink: #2a2420;
+		--soft: #b8afa6;
+		--white: #ffffff;
+
+		--font-display: 'Playfair Display', serif;
+		--font-body: 'Syne', sans-serif;
+	}
+
+	*,
+	*::before,
+	*::after {
+		box-sizing: border-box;
+		margin: 0;
+		padding: 0;
+	}
+
+	body {
+		background: var(--bg);
+		color: var(--ink);
+		font-family: var(--font-body);
+		min-height: 100vh;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		padding: 2rem 1.5rem 3rem;
+		transition:
+			background 0.5s ease,
+			color 0.5s ease;
+	}
+
+	.title {
+		font-family: var(--font-display);
+		font-size: clamp(1.7rem, 5vw, 2.8rem);
+		font-weight: 400;
+		letter-spacing: -0.02em;
+		text-align: center;
+		margin-bottom: 0.35rem;
+		color: var(--ink);
+		line-height: 1.15;
+	}
+
+	.title em {
+		font-style: italic;
+		color: var(--mix);
+		transition: color 0.4s ease;
+	}
+
+	.hint {
+		font-size: 0.78rem;
+		color: var(--soft);
+		text-align: center;
+		letter-spacing: 0.04em;
+		margin-bottom: 2.4rem;
+	}
+
+	.mix-display {
+		width: min(380px, 100%);
+		height: 190px;
+		border-radius: 18px;
+		background: var(--mix);
+		transition:
+			background 0.45s ease,
+			box-shadow 0.45s ease;
+		box-shadow: 0 20px 56px color-mix(in oklch, var(--mix) 38%, transparent);
+		margin-bottom: 1.8rem;
+		position: relative;
+		overflow: hidden;
+		flex-shrink: 0;
+	}
+
+	.mix-display::before {
+		content: '';
+		position: absolute;
+		inset: 0;
+		background: linear-gradient(140deg, rgba(255, 255, 255, 0.22) 0%, transparent 55%);
+	}
+
+	.mix-label {
+		position: absolute;
+		bottom: 14px;
+		left: 18px;
+		font-size: 0.68rem;
+		font-weight: 500;
+		letter-spacing: 0.1em;
+		text-transform: uppercase;
+		color: rgba(255, 255, 255, 0.72);
+		text-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+	}
+
+	.sources {
+		display: flex;
+		align-items: center;
+		gap: 1rem;
+		width: min(380px, 100%);
+		margin-bottom: 1.6rem;
+	}
+
+	.source {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		gap: 0.45rem;
+	}
+
+	.source-swatch {
+		height: 68px;
+		border-radius: 12px;
+		transition:
+			background 0.35s ease,
+			box-shadow 0.35s ease;
+		position: relative;
+		overflow: hidden;
+	}
+
+	.source-swatch::before {
+		content: '';
+		position: absolute;
+		inset: 0;
+		background: linear-gradient(135deg, rgba(255, 255, 255, 0.18) 0%, transparent 60%);
+	}
+
+	.source-name {
+		font-size: 0.75rem;
+		font-weight: 500;
+		color: var(--ink);
+		text-align: center;
+	}
+
+	.plus {
+		font-family: var(--font-display);
+		font-size: 1.8rem;
+		font-weight: 300;
+		color: var(--soft);
+		flex-shrink: 0;
+		margin-bottom: 1.6rem;
+	}
+
+	.slider-wrap {
+		width: min(380px, 100%);
+		margin-bottom: 2.2rem;
+	}
+
+	.slider-ends {
+		display: flex;
+		justify-content: space-between;
+		font-size: 0.68rem;
+		color: var(--soft);
+		margin-bottom: 0.55rem;
+	}
+
+	.track {
+		position: relative;
+		height: 8px;
+		border-radius: 4px;
+		transition: background 0.35s ease;
+	}
+
+	input[type='range'] {
+		-webkit-appearance: none;
+		appearance: none;
+		position: absolute;
+		inset: 0;
+		width: 100%;
+		height: 100%;
+		background: transparent;
+		cursor: pointer;
+	}
+
+	input[type='range']::-webkit-slider-thumb {
+		-webkit-appearance: none;
+		width: 24px;
+		height: 24px;
+		border-radius: 50%;
+		background: white;
+		border: 3px solid var(--mix);
+		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+		transition:
+			border-color 0.35s ease,
+			transform 0.15s ease;
+	}
+
+	input[type='range']::-webkit-slider-thumb:active {
+		transform: scale(1.15);
+	}
+
+	input[type='range']::-moz-range-thumb {
+		width: 24px;
+		height: 24px;
+		border-radius: 50%;
+		background: white;
+		border: 3px solid var(--mix);
+		cursor: pointer;
+	}
+
+	.section-label {
+		font-size: 0.68rem;
+		letter-spacing: 0.1em;
+		text-transform: uppercase;
+		color: var(--soft);
+		text-align: center;
+		margin-bottom: 0.9rem;
+	}
+
+	.presets {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.45rem;
+		justify-content: center;
+		width: min(480px, 100%);
+		margin-bottom: 2rem;
+	}
+
+	.preset-btn {
+		display: flex;
+		align-items: center;
+		gap: 0.4rem;
+		background: var(--white);
+		border: 1.5px solid rgba(0, 0, 0, 0.07);
+		border-radius: 100px;
+		padding: 0.3rem 0.7rem 0.3rem 0.42rem;
+		font-family: var(--font-body);
+		font-size: 0.72rem;
+		font-weight: 500;
+		color: var(--ink);
+		cursor: pointer;
+		transition:
+			border-color 0.2s,
+			box-shadow 0.2s,
+			transform 0.15s;
+		white-space: nowrap;
+	}
+
+	.preset-btn:hover {
+		border-color: rgba(0, 0, 0, 0.18);
+		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.07);
+		transform: translateY(-1px);
+	}
+
+	.preset-btn.active {
+		border-color: var(--ink);
+		box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+	}
+
+	.dots {
+		display: flex;
+		gap: 2px;
+	}
+
+	.dot {
+		width: 11px;
+		height: 11px;
+		border-radius: 50%;
+		box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.12);
+		flex-shrink: 0;
+	}
+
+	.code-box {
+		background: var(--white);
+		border: 1.5px solid rgba(0, 0, 0, 0.07);
+		border-radius: 10px;
+		padding: 0.75rem 1rem;
+		width: min(380px, 100%);
+		font-family: 'Courier New', monospace;
+		font-size: 0.72rem;
+		line-height: 1.7;
+		color: #666;
+		text-align: center;
+	}
+
+	.code-box .kw {
+		color: #c56b3a;
+		font-weight: 600;
+	}
+	.code-box .sp {
+		color: #5a8f7e;
+	}
+	.code-box .num {
+		color: #7b6faa;
+	}
+
+	@keyframes pop {
+		from {
+			opacity: 0;
+			transform: translateY(14px) scale(0.97);
+		}
+		to {
+			opacity: 1;
+			transform: translateY(0) scale(1);
+		}
+	}
+
+	.title {
+		animation: pop 0.5s 0s cubic-bezier(0.34, 1.4, 0.64, 1) both;
+	}
+	.hint {
+		animation: pop 0.5s 0.05s cubic-bezier(0.34, 1.4, 0.64, 1) both;
+	}
+	.mix-display {
+		animation: pop 0.5s 0.1s cubic-bezier(0.34, 1.4, 0.64, 1) both;
+	}
+	.sources {
+		animation: pop 0.5s 0.15s cubic-bezier(0.34, 1.4, 0.64, 1) both;
+	}
+	.slider-wrap {
+		animation: pop 0.5s 0.2s cubic-bezier(0.34, 1.4, 0.64, 1) both;
+	}
+	.presets {
+		animation: pop 0.5s 0.25s cubic-bezier(0.34, 1.4, 0.64, 1) both;
+	}
+	.code-box {
+		animation: pop 0.5s 0.3s cubic-bezier(0.34, 1.4, 0.64, 1) both;
+	}
+</style>
+
+<RootLayout>
+	<DemoLayout>
+		<section id="center">
+			<h1 class="title">Two colors walk into a <em>bar</em></h1>
+
+			<div class="mix-display">
+				<span class="mix-label">The Mix</span>
+			</div>
+
+			<div class="sources">
+				<div class="source">
+					<div class="source-swatch" id="sw-a"></div>
+					<div class="source-name" id="nameA"></div>
+				</div>
+				<div class="plus">+</div>
+				<div class="source">
+					<div class="source-swatch" id="sw-b"></div>
+					<div class="source-name" id="nameB"></div>
+				</div>
+			</div>
+
+			<div class="slider-wrap">
+				<div class="slider-ends">
+					<span id="endA"></span>
+					<span id="endB"></span>
+				</div>
+				<div class="track" id="track">
+					<input type="range" id="slider" min="0" max="100" value="50" />
+				</div>
+			</div>
+
+			<p class="section-label">Color Pairs</p>
+			<div class="presets" id="presets"></div>
+
+			<div class="code-box" id="codeBox"></div>
+		</section>
+	</DemoLayout>
+</RootLayout>

@@ -1,0 +1,144 @@
+---
+import RootLayout from '../layouts/RootLayout.astro';
+import DemoLayout from '../layouts/DemoLayout.astro';
+---
+
+<script type="module">
+	const enableSubGrid = document.getElementById('enableSubGrid');
+
+	let state = 'off';
+
+	if (enableSubGrid instanceof HTMLInputElement && enableSubGrid.type === 'checkbox') {
+		enableSubGrid.addEventListener('click', () => {
+			if (state === 'on') {
+				state = 'off';
+			} else {
+				state = 'on';
+			}
+
+			document.querySelector('[data-demo-state]').setAttribute('data-demo-state', state);
+		});
+	}
+</script>
+
+<RootLayout>
+	<DemoLayout>
+		<section id="center">
+			<style>
+				.grid {
+					display: grid;
+					grid-template-columns: 1fr 1fr;
+
+					.card {
+						/* Instruct the .card to span across 6 rows: */
+						grid-row: span 6;
+						display: grid;
+						grid-template-rows: subgrid;
+					}
+
+					.card ul {
+						/* Instruct the list within to span across 5 rows: */
+						grid-row: span 5;
+						display: grid;
+						grid-template-rows: subgrid;
+					}
+				}
+
+				.grid[data-demo-state='off'] {
+					.card ul {
+						display: flex;
+						flex-direction: column;
+						gap: 20px;
+					}
+				}
+
+				p {
+					font-size: 0.875rem;
+
+					&:last-of-type {
+						margin-top: 1rem;
+					}
+				}
+
+				.grid {
+					gap: 2rem 1rem;
+					padding: 1rem;
+					min-width: 570px;
+				}
+
+				.card {
+					background: hsl(210deg 25% 92%);
+					padding: 1rem;
+					padding-bottom: 2rem;
+					border-radius: 8px;
+
+					h2 {
+						text-align: center;
+						padding: 1.25rem;
+						background: hsl(211, 78%, 72%);
+						margin: -0.75rem;
+						margin-bottom: 0;
+						border-radius: 4px;
+					}
+
+					ul {
+						padding: 0;
+						list-style-type: none;
+					}
+
+					li {
+						position: relative;
+
+						&::before {
+							content: '→';
+							font-family: system-ui, monospace;
+							font-weight: 700;
+							margin-right: 0.5em;
+							color: hsl(210deg 50% 50%);
+						}
+
+						&:not(:last-of-type)::after {
+							content: '';
+							position: absolute;
+							left: 0;
+							right: 0;
+							bottom: -1rem;
+							height: 1px;
+							background: hsl(210deg 40% 75%);
+						}
+					}
+				}
+			</style>
+
+			<div class="grid" data-demo-state="off">
+				<div class="card">
+					<h2>Pro Package</h2>
+					<ul>
+						<li>Up to 4 team accounts.</li>
+						<li>Basic workflows.</li>
+						<li>Connect with Slack™.</li>
+						<li>Up to 3 knowledge bases, with 100gb total storage.</li>
+						<li>Limited AI assistant (depending on region and language).</li>
+					</ul>
+				</div>
+				<div class="card">
+					<h2>Enterprise Package</h2>
+					<ul>
+						<li>Unlimited team accounts.</li>
+						<li>Advanced, fully-customizeable workflows.</li>
+						<li>Connect with Slack™, Microsoft Teams™, Discord™, and 5 other popular integrations.</li>
+						<li>Unlimited knowledge bases.</li>
+						<li>Unlimited robots. 🤖</li>
+					</ul>
+				</div>
+			</div>
+		</section>
+
+		<div class="ticks">
+			<div class="tick-stack">
+				<label for="enableSubGrid">Enable sub-grid</label>
+				<input type="checkbox" id="enableSubGrid" />
+			</div>
+		</div>
+	</DemoLayout>
+</RootLayout>
